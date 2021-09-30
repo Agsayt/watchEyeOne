@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">watchEye</string>
+    <string name="Settings">Настройки</string>
+
+    <string name="DestinationAddress">Адрес назначения</string>
+    <string name="DestinationPort">Порт</string>
+    <string name="Save">Сохранить</string>
+    <string name="Load">Загрузить</string>
+    <string name="Accept">Принять</string>
+    <string name="Cancel">Отмена</string>
+
+</resources>
