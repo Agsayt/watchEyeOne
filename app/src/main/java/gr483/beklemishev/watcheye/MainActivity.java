@@ -5,31 +5,135 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Dialog;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.StrictMode;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String destinationAddress;
-    private Integer destinationPort;
+    private String destinationAddress = "node00.ddns.net";
+    private int destinationPort = 2040;
 
     ListView loadLV;
     ArrayList<NetworkSettings> lstNetwork = new ArrayList<NetworkSettings>();
     ArrayAdapter<NetworkSettings> adpNetwork;
+    eyeCanvas mainCanvas;
+    TextView fps;
+    EditText channel;
+    ImageView streamImage;
+
+    Client client;
+    public static Thread mainThread;
+    private Timer timer;
+
+    public static Bitmap inputStream2Bitmap(InputStream is) {
+        return BitmapFactory.decodeStream(is);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        streamImage = findViewById(R.id.streamImage);
+        fps = findViewById(R.id.framesPerSecond);
+        channel = findViewById(R.id.etChannelNumber);
+        channel.setText("3");
+
+
+        mainCanvas = findViewById(R.id.eyeCanvas);
+        client = new Client(mainCanvas, destinationAddress, destinationPort, Integer.parseInt(channel.getText().toString()));
+        mainThread = new Thread(client);
+
+
+        startFPSCounting();
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); // иначе вываливается в NetworkOnMainThreadException
+        StrictMode.setThreadPolicy(policy);
+
+
+        mainThread.start();
+    }
+
+    public void onChangeChannel(View v)
+    {
+        timer.cancel();
+        try {
+            client.stopTranslation();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        client.changeChannel(Integer.valueOf(channel.getText().toString()));
+
+        client.startTranslation();
+        mainThread = new Thread(client);
+        mainThread.start();
+
+        startFPSCounting();
+    }
+
+    private void startFPSCounting() {
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        int buffer = client.frames;
+                        fps.setText("rate: " + String.valueOf(buffer) + " fps");
+                        client.frames = 0;
+                    }
+                });
+
+            }
+        }, 0, 1000);
+    }
+
+    public void onStopTranslationClick(View v){
+        if (client.getCurrentState()){
+            timer.cancel();
+            fps.setText("rate: " + 0 + " fps");
+            try {
+                client.stopTranslation();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else
+            Toast.makeText(this, "Вы уже отписались от потока", Toast.LENGTH_SHORT).show();
+
+    }
+
+    public void onResumeTranslationClick(View v){
+        if (!client.getCurrentState()){
+            client.startTranslation();
+            mainThread = new Thread(client);
+            mainThread.start();
+            startFPSCounting();
+        } else
+            Toast.makeText(this, "Поток уже получается", Toast.LENGTH_SHORT).show();
+
+
     }
 
 

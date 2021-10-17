@@ -8,5 +8,8 @@
     <string name="Load">Загрузить</string>
     <string name="Accept">Принять</string>
     <string name="Cancel">Отмена</string>
+    <string name="SaveName">Имя сохранения</string>
+    <string name="Pause">Пауза</string>
+    <string name="Play">Играть</string>
 
 </resources>
